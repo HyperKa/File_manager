@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Базовый фон, чтобы не было белых вспышек при загрузке */
+body {
+    @apply bg-[#09090b] text-white antialiased;
+    margin: 0;
+}

@@ -1,11 +1,9 @@
 package org.example.file_manager_cloudflare.dto;
 
-public record FileResponce(
+public record FileResponse(
         Long id,
         String fileName,
         String downloadUrl,
         String fileType,
-        double fileSize
-) {
-
-}
+        String fileSize
+) {}

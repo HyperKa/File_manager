@@ -1,0 +1,14 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: nano-database
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Консоль
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    volumes:
+      - ./minio_storage:/data
+    command: server /data --console-address ":9001"
+
