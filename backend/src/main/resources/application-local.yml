@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:file_manager}
+    username: ${POSTGRES_USER:file_manager}
+    password: ${POSTGRES_PASSWORD:file_manager}
+  jpa:
+    show-sql: false
+
+app:
+  storage:
+    s3:
+      endpoint: ${S3_ENDPOINT:http://localhost:${MINIO_API_PORT:9000}}
+      bucket: ${S3_BUCKET:my-files}
+      region: ${S3_REGION:us-east-1}
+      access-key: ${S3_ACCESS_KEY:minioadmin}
+      secret-key: ${S3_SECRET_KEY:minioadmin}
+      path-style: true
+  security:
+    api-token: ${API_TOKEN:local-dev-token}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
