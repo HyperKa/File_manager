@@ -9,7 +9,7 @@ public record UserId(UUID value) {
         Objects.requireNonNull(value, "value must not be null");
     }
 
-    public static UserId from(UUID value) {
+    public static UserId createFromUUID(UUID value) {
         return new UserId(value);
     }
 

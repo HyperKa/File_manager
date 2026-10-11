@@ -4,6 +4,7 @@ import org.example.file_manager_cloudflare.file.domain.FileMetadata;
 import org.example.file_manager_cloudflare.file.domain.FileStatus;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 public record FileResponse(
@@ -12,20 +13,20 @@ public record FileResponse(
         String mediaType,
         long sizeBytes,
         FileStatus status,
-        Instant uploadedAt,
+        Instant updatedAt,
         String downloadUrl
 ) {
 
     public static FileResponse from(FileMetadata metadata) {
-        UUID id = metadata.id().value();
+        UUID fileId = metadata.id().value();
         return new FileResponse(
-                id,
-                metadata.originalName().value(),
+                fileId,
+                metadata.fileName().value(),
                 metadata.mediaType().value(),
                 metadata.sizeBytes(),
                 metadata.status(),
                 metadata.createdAt(),
-                "/api/v1/files/" + id + "/content"
-        );
+                "/api/v1/files/" + fileId + "/content");
+
     }
 }

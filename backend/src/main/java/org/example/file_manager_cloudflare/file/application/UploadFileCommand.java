@@ -9,12 +9,12 @@ public record UploadFileCommand(
         String mediaType,
         long sizeBytes
 ) {
-
     public UploadFileCommand {
         Objects.requireNonNull(content, "content must not be null");
         Objects.requireNonNull(fileName, "fileName must not be null");
-        if (sizeBytes < 0) {
-            throw new IllegalArgumentException("sizeBytes must be non-negative");
+        Objects.requireNonNull(mediaType, "mediaType must not be null");
+        if (sizeBytes <= 0) {
+            throw new IllegalArgumentException("sizeBytes must be positive");
         }
     }
 }
