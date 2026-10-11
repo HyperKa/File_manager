@@ -32,6 +32,6 @@ public class ObjectStorageConfiguration {
 
     @Bean
     FileStoragePort fileStoragePort(S3Client s3Client, StorageProperties properties) {
-        return new S3FileStorage(s3Client, properties.getS3().getBucket());
+        return new S3FileStorageAdapter(s3Client, properties.getS3().getBucket());
     }
 }

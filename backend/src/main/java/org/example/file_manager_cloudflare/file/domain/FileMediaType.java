@@ -3,7 +3,21 @@ package org.example.file_manager_cloudflare.file.domain;
 import org.example.file_manager_cloudflare.common.exception.InvalidFileException;
 
 import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+// Обработка и сохранение пути файла
+
+/**
+ *
+ * @param value - подается на вход MIME-тип из HTTP-запроса
+ *
+ * Когда браузер скачивает или загружает файл, он ориентируется не на расширение .docx или .mp3, а на MIME-тип:
+ * Для .mp3 это audio/mpeg
+ * Для .docx это application/vnd.openxmlformats-officedocument.wordprocessingml.document
+ * Для .png это image/png
+ * Для .svg это image/svg+xml
+ */
 
 public record FileMediaType(String value) {
 
@@ -14,12 +28,13 @@ public record FileMediaType(String value) {
     public FileMediaType {
         Objects.requireNonNull(value, "value must not be null");
         value = value.trim().toLowerCase();
-        if (!PATTERN.matcher(value).matches()) {
+        Matcher text = PATTERN.matcher(value);
+        if (!text.matches()) {
             throw new InvalidFileException("Invalid media type");
         }
     }
 
-    public static FileMediaType of(String value) {
+    public static FileMediaType parseOrDefault(String value) {
         if (value == null || value.isBlank()) {
             return new FileMediaType("application/octet-stream");
         }
