@@ -2,12 +2,7 @@ package org.example.file_manager_cloudflare.file.api;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.example.file_manager_cloudflare.file.application.DeleteFileUseCase;
-import org.example.file_manager_cloudflare.file.application.DownloadFileUseCase;
-import org.example.file_manager_cloudflare.file.application.FileDownload;
-import org.example.file_manager_cloudflare.file.application.ListFilesUseCase;
-import org.example.file_manager_cloudflare.file.application.UploadFileCommand;
-import org.example.file_manager_cloudflare.file.application.UploadFileUseCase;
+import org.example.file_manager_cloudflare.file.application.*;
 import org.example.file_manager_cloudflare.file.domain.DownloadHandle;
 import org.example.file_manager_cloudflare.file.domain.FileId;
 import org.example.file_manager_cloudflare.file.domain.FileMetadata;
@@ -18,13 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -44,19 +33,22 @@ public class FileController {
     private final DeleteFileUseCase deleteFileUseCase;
     private final ListFilesUseCase listFilesUseCase;
     private final CurrentUserService currentUserService;
+    private final RenameFileUseCase renameFileUseCase;
 
     public FileController(
             UploadFileUseCase uploadFileUseCase,
             DownloadFileUseCase downloadFileUseCase,
             DeleteFileUseCase deleteFileUseCase,
             ListFilesUseCase listFilesUseCase,
-            CurrentUserService currentUserService
+            CurrentUserService currentUserService,
+            RenameFileUseCase renameFileUseCase
     ) {
         this.uploadFileUseCase = uploadFileUseCase;
         this.downloadFileUseCase = downloadFileUseCase;
         this.deleteFileUseCase = deleteFileUseCase;
         this.listFilesUseCase = listFilesUseCase;
         this.currentUserService = currentUserService;
+        this.renameFileUseCase = renameFileUseCase;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -122,6 +114,16 @@ public class FileController {
     public ResponseEntity<Void> deleteFile(@PathVariable UUID id) {
         deleteFileUseCase.delete(FileId.from(id), currentUserService.currentUserId());
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<FileResponse> renameFile(
+            @PathVariable UUID id,
+            @RequestBody @jakarta.validation.Valid RenameFileRequest request
+    ) {
+        UserId ownerId = currentUserService.currentUserId();
+        FileMetadata updated = renameFileUseCase.rename(FileId.from(id), ownerId, request.newName());
+        return ResponseEntity.ok(FileResponse.from(updated));
     }
 
     private String toQuotedEtag(String eTag) {

@@ -10,7 +10,7 @@ public class FileMetadata {
 
     private final FileId id;
     private final UserId ownerId;
-    private final FileName originalName;
+    private FileName originalName;
     private final StorageKey storageKey;
     private final FileMediaType mediaType;
     private long sizeBytes;
@@ -83,9 +83,14 @@ public class FileMetadata {
         this.status = FileStatus.READY;
     }
 
-    public void markFailed() {
-        requireStatus(FileStatus.PENDING, "Only a pending file can be marked as failed");
-        this.status = FileStatus.FAILED;
+    // применить при пересылке и проверке сохранения в бд
+    public boolean markFailed() {
+        // requireStatus(FileStatus.PENDING, "Only a pending file can be marked as failed");
+        if (FileStatus.FAILED.equals(status)) {
+            this.status = FileStatus.FAILED;
+            return true;
+        }
+        return false;
     }
 
     public void markDeleting() {
@@ -99,6 +104,7 @@ public class FileMetadata {
         this.deletedAt = Instant.now();
     }
 
+    // id автора соответствует чтению (загрузке)?
     public void ensureReadableBy(UserId userId) {
         ensureOwnedBy(userId);
         if (status != FileStatus.READY) {
@@ -106,12 +112,14 @@ public class FileMetadata {
         }
     }
 
+    // id автора соответствует удалению, изменению?
     public void ensureOwnedBy(UserId userId) {
         if (!ownerId.equals(userId)) {
             throw new FileAccessDeniedException();
         }
     }
 
+    // проверка статуса перед выставлением нового статуса
     private void requireStatus(FileStatus expected, String message) {
         if (status != expected) {
             throw new FileStateException(message);
@@ -136,6 +144,13 @@ public class FileMetadata {
 
     public FileMediaType mediaType() {
         return mediaType;
+    }
+
+    public void rename(FileName newName) {
+        if (this.status != FileStatus.READY) {
+            throw new FileStateException("Only ready files can be renamed");
+        }
+        this.originalName = Objects.requireNonNull(newName);
     }
 
     public long sizeBytes() {

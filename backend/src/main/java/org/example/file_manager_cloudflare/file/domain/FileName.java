@@ -13,12 +13,13 @@ public record FileName(String value) {
         if (value.isBlank()
                 || value.contains("\n")
                 || value.contains("\r")
-                || value.codePointCount(0, value.length()) > 255
-                || value.getBytes(StandardCharsets.UTF_8).length > 1024) {
+                // ограничения по длине для обычных символов (обычный подсчет указателей) по 1-2 байта и эмодзи/иероглифов по 4 байта
+                || value.codePointCount(0, value.length()) > 255) {
             throw new InvalidFileException("Invalid file name");
         }
     }
 
+    // взятие из всего пути только названия файла и типа: "filename.txt"
     private static String normalize(String originalName) {
         String replaced = Objects.requireNonNull(originalName).replace('\\', '/');
         int separator = replaced.lastIndexOf('/');

@@ -46,7 +46,7 @@ public class UploadFileUseCase {
     public FileMetadata upload(UploadFileCommand command, UserId ownerId) {
         validate(command);
 
-        FileId id = FileId.generate();
+        FileId id = FileId.generateNewRandomUUID();
         FileName fileName = new FileName(command.fileName());
         FileMediaType mediaType = FileMediaType.of(command.mediaType());
         StorageKey storageKey = new StorageKey("files/" + id);
@@ -96,11 +96,7 @@ public class UploadFileUseCase {
         return transactionTemplate.execute(status -> metadataRepository.create(metadata));
     }
 
-    private StoredUpload storeContent(
-            UploadFileCommand command,
-            StorageKey storageKey,
-            FileMediaType mediaType
-    ) throws IOException {
+    private StoredUpload storeContent(UploadFileCommand command, StorageKey storageKey, FileMediaType mediaType) throws IOException {
         DigestStream digestStream = new DigestStream(command.content());
         try {
             StoredFile storedFile = storagePort.store(
@@ -114,11 +110,17 @@ public class UploadFileUseCase {
     }
 
     private FileMetadata complete(FileId id, StoredFile storedFile, String checksum) {
+
         return transactionTemplate.execute(status -> {
+
             FileMetadata current = metadataRepository.findById(id)
                     .orElseThrow(() -> new FileNotFoundException(id.value()));
+
             current.markReady(storedFile.eTag(), checksum);
+
             metadataRepository.save(current);
+
+
             return current;
         });
     }

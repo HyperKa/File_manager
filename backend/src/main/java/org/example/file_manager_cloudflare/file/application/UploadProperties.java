@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class UploadProperties {
 
     private long maxFileSizeBytes = 104_857_600L;
+    // вынести в ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ, в domain.FileName уже есть
     private int maxFileNameBytes = 255;
 
     public long getMaxFileSizeBytes() {

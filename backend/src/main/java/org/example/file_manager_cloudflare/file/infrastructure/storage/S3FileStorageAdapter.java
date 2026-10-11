@@ -20,12 +20,12 @@ import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
 import java.io.InputStream;
 
-public class S3FileStorage implements FileStoragePort {
+public class S3FileStorageAdapter implements FileStoragePort {
 
     private final S3Client s3Client;
     private final String bucket;
 
-    public S3FileStorage(S3Client s3Client, String bucket) {
+    public S3FileStorageAdapter(S3Client s3Client, String bucket) {
         this.s3Client = s3Client;
         this.bucket = bucket;
     }

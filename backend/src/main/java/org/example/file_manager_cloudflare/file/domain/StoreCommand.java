@@ -2,9 +2,9 @@ package org.example.file_manager_cloudflare.file.domain;
 
 import java.util.Objects;
 
-public record StoreCommand(
+public record StoreCommand (
         StorageKey key,
-        FileMediaType mediaType,
+        FileMediaType mediaType,    // MIME-тип файла
         long sizeBytes
 ) {
 

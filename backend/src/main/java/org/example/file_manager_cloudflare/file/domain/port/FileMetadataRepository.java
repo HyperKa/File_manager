@@ -11,7 +11,7 @@ public interface FileMetadataRepository {
 
     FileMetadata create(FileMetadata metadata);
 
-    Optional<FileMetadata> findById(FileId id);
+    Optional<FileMetadata> findFileById(FileId id);
 
     FilePage<FileMetadata> findByOwnerId(UserId ownerId, int pageNumber, int pageSize);
 
