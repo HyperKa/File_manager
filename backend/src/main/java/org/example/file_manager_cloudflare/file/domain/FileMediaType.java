@@ -1,13 +1,10 @@
 package org.example.file_manager_cloudflare.file.domain;
 
-import org.example.file_manager_cloudflare.common.exception.InvalidFileException;
-
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // Обработка и сохранение пути файла
-
 /**
  *
  * @param value - подается на вход MIME-тип из HTTP-запроса
@@ -30,7 +27,8 @@ public record FileMediaType(String value) {
         value = value.trim().toLowerCase();
         Matcher text = PATTERN.matcher(value);
         if (!text.matches()) {
-            throw new InvalidFileException("Invalid media type");
+            throw new RuntimeException("Invalid media type");
+            // throw new InvalidFileException("Invalid media type");
         }
     }
 

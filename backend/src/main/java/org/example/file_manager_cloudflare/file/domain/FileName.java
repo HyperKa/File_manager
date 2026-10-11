@@ -1,8 +1,5 @@
 package org.example.file_manager_cloudflare.file.domain;
 
-import org.example.file_manager_cloudflare.common.exception.InvalidFileException;
-
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public record FileName(String value) {
@@ -14,8 +11,9 @@ public record FileName(String value) {
                 || value.contains("\n")
                 || value.contains("\r")
                 // ограничения по длине для обычных символов (обычный подсчет указателей) по 1-2 байта и эмодзи/иероглифов по 4 байта
-                || value.codePointCount(0, value.length()) > 255) {
-            throw new InvalidFileException("Invalid file name");
+                || value.length() > 255) {
+            throw new RuntimeException("Invalid file name");
+            // throw new InvalidFileException("Invalid file name");
         }
     }
 
