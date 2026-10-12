@@ -14,9 +14,9 @@ public class FileMetadata {
     private final Instant createdAt;
 
     // Изменяемые поля
-    private FileName originalName;
-    private String sha256;
-    private String eTag;
+    private FileName originalName;         // "document.txt" формат
+    private String sha256;                 // Поле для хранения хэш-суммы для файлов более 5 Мб
+    private String eTag;                   // Поле для хранения хэш-суммы для файлов менее 5 Мб
     private FileStatus status;
     private Instant updatedAt;
     private Instant deletedAt;

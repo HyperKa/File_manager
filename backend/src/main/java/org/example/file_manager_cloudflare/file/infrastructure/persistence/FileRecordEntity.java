@@ -53,6 +53,7 @@ public class FileRecordEntity {
 
     protected FileRecordEntity() {}
 
+    // сохранение в базу
     public static FileRecordEntity fromDomain(FileMetadata metadata) {
         FileRecordEntity entity = new FileRecordEntity();
         entity.id = metadata.id().value();
@@ -67,6 +68,7 @@ public class FileRecordEntity {
         return entity;
     }
 
+    // вывод из базы
     public FileMetadata toDomain() {
         return new FileMetadata(
                 FileId.createFromUUID(id),
