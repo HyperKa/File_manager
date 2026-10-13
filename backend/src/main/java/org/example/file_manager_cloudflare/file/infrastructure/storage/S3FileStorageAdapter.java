@@ -22,6 +22,16 @@ public class S3FileStorageAdapter implements FileStoragePort {
         this.s3Client = s3Client;
     }
 
+    /**
+     *
+     * @param content
+     * @param command
+     *
+     * @method fromInputStream - также читает поток чанками по 8 Кб, то есть уже идет
+     *                           буферизованное чтение буфера Tomcat
+     *
+     * @return
+     */
     @Override
     public StoredFile storeFile(InputStream content, StoreCommand command) {
         try {
