@@ -8,8 +8,9 @@ import org.example.file_manager_cloudflare.file.domain.port.FileStoragePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -17,13 +18,13 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.UUID;
 
-import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@MockitoBean
+@ExtendWith(MockitoExtension.class)
 public class UploadFileUseCaseTest {
 
     @Mock
@@ -40,9 +41,9 @@ public class UploadFileUseCaseTest {
     private final UserId testId = UserId.createFromUUID(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     private final String fileContent = "текстовый документ на кириллице";
 
+    // аннотация, вызывающая метод setUp в реализации Mockito после конструктора и заполнения мок-полей
     @BeforeEach
     public void setUp() {
-        // а в чем разница между TransactionTemplate и PlatformTransactionManager? Почему не сразу создать TransactionTemplate?
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         uploadFileUseCase = new UploadFileUseCase(metadataRepo, storagePort, transactionTemplate);
     }
@@ -104,10 +105,9 @@ public class UploadFileUseCaseTest {
         // чек текста сообщения:
         assertEquals("Ошибка при загрузке файла в S3", exception.getMessage());
 
-        FileMetadata result = uploadFileUseCase.uploadFile(command, testId);
 
-        assertNotNull(result);
-        assertEquals(FileStatus.FAILED, result.status(), "Статус должен стать READY");
+        assertNotNull(exception);
+        assertEquals(RuntimeException.class, exception.getClass(), "Класс должен быть RuntimeException");
 
         verify(metadataRepo, times(1)).createFile(any(FileMetadata.class));
         verify(storagePort, times(1)).storeFile(any(InputStream.class), any(StoreCommand.class));

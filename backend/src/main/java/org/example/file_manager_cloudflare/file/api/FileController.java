@@ -22,12 +22,21 @@ public class FileController {
         this.uploadFileUseCase = uploadFileUseCase;
     }
 
+    /**
+     *
+     * @param file
+     *        метод file.getInputStream() из сервера Tomcat уже буферизует файл внутри, и принимает FileInputStream:
+     *        new BufferedInputStream(new FileInputStream(file))
+     * @return
+     * @throws IOException - стандартное проверяемое исключение для getInputStream()
+     */
+
     @PostMapping
     public ResponseEntity<FileResponse> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
         UploadFileCommand command = new UploadFileCommand(
                 file.getInputStream(),
-                file.getOriginalFilename(),
-                file.getContentType(),
+                file.getOriginalFilename() == null ? "noname" : file.getOriginalFilename(),
+                file.getContentType() == null ? "application/octet-stream" : file.getContentType(),
                 file.getSize()
         );
 
