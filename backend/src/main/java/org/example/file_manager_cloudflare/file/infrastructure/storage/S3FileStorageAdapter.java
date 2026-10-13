@@ -17,7 +17,7 @@ public class S3FileStorageAdapter implements FileStoragePort {
     public final String bucketName;
     public final S3Client s3Client;
 
-    public S3FileStorageAdapter(@Value("${app.storage.s3.bucket:my-files}") String bucketName, S3Client s3Client) {
+    public S3FileStorageAdapter(@Value("${app.storage.s3.bucket}") String bucketName, S3Client s3Client) {
         this.bucketName = bucketName;
         this.s3Client = s3Client;
     }

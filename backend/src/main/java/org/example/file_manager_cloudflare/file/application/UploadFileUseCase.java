@@ -6,8 +6,6 @@ import org.example.file_manager_cloudflare.file.domain.port.FileStoragePort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.concurrent.ExecutorService;
-
 @Service
 public class UploadFileUseCase {
     FileMetadataRepository metadataRepo;
@@ -25,7 +23,7 @@ public class UploadFileUseCase {
         FileId fileId = FileId.generateNewRandomUUID();
         FileName fileName = new FileName(command.fileName());
         FileMediaType mediaType = new FileMediaType(command.mediaType());
-        StorageKey storageKey = new StorageKey("/files/" + fileId.value());
+        StorageKey storageKey = new StorageKey("files/" + fileId.value());
 
         FileMetadata pending = FileMetadata.pending(
                 ownerId, fileName, storageKey, mediaType, command.sizeBytes()
