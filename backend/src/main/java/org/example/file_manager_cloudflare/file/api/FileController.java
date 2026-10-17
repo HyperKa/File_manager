@@ -44,4 +44,10 @@ public class FileController {
         URI location = URI.create("/api/v1/files/" + fileMetadata.id().value());
         return ResponseEntity.created(location).body(FileResponse.from(fileMetadata));
     }
+
+    @GetMapping
+    public ResponseEntity<FileResponse> getFile(RequestBody FilePage) {
+        FileMetadata fileMetadata = uploadFileUseCase.getFile(id);
+        return ResponseEntity.ok(FileResponse.from(fileMetadata));
+    }
 }
