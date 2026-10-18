@@ -1,12 +1,15 @@
 package org.example.file_manager_cloudflare.api;
 
+import org.example.file_manager_cloudflare.file.application.DownloadFileUseCase;
 import org.example.file_manager_cloudflare.file.application.GetAllFilesUseCase;
 import org.example.file_manager_cloudflare.file.application.UploadFileCommand;
 import org.example.file_manager_cloudflare.file.application.UploadFileUseCase;
 import org.example.file_manager_cloudflare.file.domain.*;
+import org.example.file_manager_cloudflare.file.domain.port.FileStoragePort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMultipartHttpServletRequestDsl;
@@ -18,8 +21,12 @@ import tools.jackson.databind.ObjectMapper;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,6 +46,12 @@ class FileControllerTest {
 
     @MockitoBean
     private UploadFileUseCase uploadFileUseCase;
+
+    @MockitoBean
+    private DownloadFileUseCase downloadFileUseCase;
+
+    @MockitoBean
+    private FileStoragePort fileStoragePort;
 
     private final UserId testUserId = UserId.createFromUUID(UUID.fromString("00000000-0000-0000-0000-000000000001"));
 
@@ -188,6 +201,76 @@ class FileControllerTest {
         mockMvc.perform(multipart("/api/v1/files"))
                 // Spring сам отвергнет запрос, так как @RequestParam("file") обязательный
                 .andExpect(status().isBadRequest());
+    }
+
+    // ВЫГРУЗКА ФАЙЛА ИЗ ХРАНИЛИЩА (FM-3)
+
+    @Test
+    void downloadFile_WhenFileExists_Returns200WithCorrectHeaders() throws Exception {
+
+        UUID fileId = UUID.randomUUID();
+        byte[] fileContent = "Hello, World!".getBytes(StandardCharsets.UTF_8);
+        InputStream inputStream = new ByteArrayInputStream(fileContent);
+
+        FileMetadata metadata = FileMetadata.pending(
+                testUserId,
+                new FileName("document.pdf"),
+                new StorageKey("files/" + fileId),
+                new FileMediaType("application/pdf"),
+                (long) fileContent.length
+        );
+        metadata.markReady("etag-1", null);
+
+        when(downloadFileUseCase.execute(eq(new FileId(fileId))))
+                .thenReturn(Optional.of(metadata));
+        when(fileStoragePort.getFileContent(eq(metadata.storageKey())))
+                .thenReturn(inputStream);
+
+        mockMvc.perform(get("/api/v1/files/{id}/content", fileId))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/pdf"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"document.pdf\""))
+                .andExpect(content().bytes(fileContent)); // Проверка, что байты совпадают
+    }
+
+    @Test
+    void downloadFile_WhenFileNotFound_Returns404() throws Exception {
+        // Arrange
+        UUID fileId = UUID.randomUUID();
+        when(downloadFileUseCase.execute(eq(new FileId(fileId))))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/files/{id}/content", fileId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void downloadFile_WhenFilenameHasCyrillic_EncodesCorrectly() throws Exception {
+        // Arrange — файл с кириллицей и пробелом в имени
+        UUID fileId = UUID.randomUUID();
+        byte[] fileContent = "test".getBytes(StandardCharsets.UTF_8);
+        InputStream inputStream = new ByteArrayInputStream(fileContent);
+
+        FileMetadata metadata = FileMetadata.pending(
+                testUserId,
+                new FileName("мой документ.pdf"), // Кириллица + пробел
+                new StorageKey("files/" + fileId),
+                new FileMediaType("application/pdf"),
+                (long) fileContent.length
+        );
+        metadata.markReady("etag-1", null);
+
+        when(downloadFileUseCase.execute(eq(new FileId(fileId))))
+                .thenReturn(Optional.of(metadata));
+        when(fileStoragePort.getFileContent(eq(metadata.storageKey())))
+                .thenReturn(inputStream);
+
+        mockMvc.perform(get("/api/v1/files/{id}/content", fileId))
+                .andExpect(status().isOk())
+                // Проверка, что кириллица закодирована в percent-encoding
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"%D0%BC%D0%BE%D0%B9%20%D0%B4%D0%BE%D0%BA%D1%83%D0%BC%D0%B5%D0%BD%D1%82.pdf\""));
     }
 
 }
