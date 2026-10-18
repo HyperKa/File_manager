@@ -7,6 +7,7 @@ import org.example.file_manager_cloudflare.file.domain.UserId;
 import org.example.file_manager_cloudflare.file.domain.port.FileMetadataRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -25,11 +26,8 @@ public class GetAllFilesUseCaseTest {
     @Mock
     private FileMetadataRepository metadataRepo;
 
+    @InjectMocks
     private GetAllFilesUseCase getAllFilesUseCase;
-
-    public GetAllFilesUseCaseTest() {
-        getAllFilesUseCase = new GetAllFilesUseCase(metadataRepo);
-    }
 
     private final UserId userId = UserId.createFromUUID(UUID.fromString("00000000-0000-0000-0000-000000000001"));
 
@@ -42,12 +40,12 @@ public class GetAllFilesUseCaseTest {
         FilePage<FileMetadata> page = new FilePage<>(
                 List.of(mockFile),
                 1L,
-                1,
+                0,
                 10,
                 1
         );
 
-        when(metadataRepo.findAllFilesByOwnerId(userId, any(), any()))
+        when(metadataRepo.findAllFilesByOwnerId(eq(userId), eq(0), eq(10)))
                 .thenReturn(page);
 
         FilePage<FileMetadata> result = getAllFilesUseCase.getAllFilesForOnePage(userId, 0, 10);
@@ -70,14 +68,14 @@ public class GetAllFilesUseCaseTest {
                 0
         );
 
-        when(metadataRepo.findAllFilesByOwnerId(any(), any(), any()))
+        when(metadataRepo.findAllFilesByOwnerId(eq(userId), eq(0), eq(10)))
                 .thenReturn(emptyPage);
 
         FilePage<FileMetadata> result = getAllFilesUseCase.getAllFilesForOnePage(userId, 0, 10);
 
-        assertNotNull(emptyPage);
+        assertNotNull(result);
         assertEquals(emptyPage, result);
-        verify(metadataRepo, times(1)).findAllFilesByOwnerId(any(), any(), any());
+        verify(metadataRepo, times(1)).findAllFilesByOwnerId(eq(userId), eq(0), eq(10));
     }
 
     /**
