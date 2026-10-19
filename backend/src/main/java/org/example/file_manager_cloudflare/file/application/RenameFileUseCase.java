@@ -46,10 +46,7 @@ public class RenameFileUseCase {
                 return metadata;
 
             } catch (Exception e) {
-                // Помечаем транзакцию как обреченную на откат, БЕЗ выбрасывания инстанса Exception наружу
                 status.setRollbackOnly();
-
-                // Здесь можно выполнить логирование или вернуть дефолтное значение
                 System.out.println("Ошибка при сохранении, транзакция отменена: " + e.getMessage());
                 return null;
             }
