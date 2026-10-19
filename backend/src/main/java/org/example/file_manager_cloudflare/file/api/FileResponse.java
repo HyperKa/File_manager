@@ -4,7 +4,6 @@ import org.example.file_manager_cloudflare.file.domain.FileMetadata;
 import org.example.file_manager_cloudflare.file.domain.FileStatus;
 
 import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
 
 public record FileResponse(

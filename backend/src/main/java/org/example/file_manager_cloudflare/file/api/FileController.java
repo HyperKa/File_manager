@@ -1,9 +1,7 @@
 package org.example.file_manager_cloudflare.file.api;
 
-import org.example.file_manager_cloudflare.file.application.DownloadFileUseCase;
-import org.example.file_manager_cloudflare.file.application.GetAllFilesUseCase;
-import org.example.file_manager_cloudflare.file.application.UploadFileCommand;
-import org.example.file_manager_cloudflare.file.application.UploadFileUseCase;
+import jakarta.validation.Valid;
+import org.example.file_manager_cloudflare.file.application.*;
 import org.example.file_manager_cloudflare.file.domain.FileId;
 import org.example.file_manager_cloudflare.file.domain.FileMetadata;
 import org.example.file_manager_cloudflare.file.domain.FilePage;
@@ -18,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -33,13 +32,19 @@ public class FileController {
     private static final UserId testId = UserId.createFromUUID(UUID.fromString("00000000-0000-0000-0000-000000000001"));
     private final GetAllFilesUseCase getAllFilesUseCase;
     private final DownloadFileUseCase downloadFileUseCase;
+    private final RenameFileUseCase renameFileUseCase;
     private final FileStoragePort fileStoragePort;
 
-    public FileController(UploadFileUseCase uploadFileUseCase, GetAllFilesUseCase getAllFilesUseCase, DownloadFileUseCase downloadFileUseCase, FileStoragePort fileStoragePort) {
+    public FileController(UploadFileUseCase uploadFileUseCase,
+                          GetAllFilesUseCase getAllFilesUseCase,
+                          DownloadFileUseCase downloadFileUseCase,
+                          FileStoragePort fileStoragePort,
+                          RenameFileUseCase renameFileUseCase) {
         this.uploadFileUseCase = uploadFileUseCase;
         this.getAllFilesUseCase = getAllFilesUseCase;
         this.downloadFileUseCase = downloadFileUseCase;
         this.fileStoragePort = fileStoragePort;
+        this.renameFileUseCase = renameFileUseCase;
     }
 
     /**
@@ -123,5 +128,24 @@ public class FileController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
                 .contentLength(metadata.sizeBytes())
                 .body(resource);
+    }
+
+    /**
+     * Метод помечен как PatchMapping, так как запись FileMetadata необходимо изменять частично
+     * Если делать @PutMapping, то необходимо поднимать всю запись и делать новую запись
+     * FileMetadata с новым именем
+     * @param fileId
+     * @param request - входящий HTTP запрос на смену имени формата:
+     * @return
+     */
+    @PatchMapping("/{id}")
+    public ResponseEntity<FileResponse> renameFile(
+            @PathVariable UUID fileId,
+            @Valid @RequestBody RenameFileRequest request) {
+
+        FileId id = new FileId(fileId);
+        FileMetadata updatedMetadata = renameFileUseCase.execute(id, request.newName());
+
+        return ResponseEntity.ok(FileResponse.from(updatedMetadata));
     }
 }

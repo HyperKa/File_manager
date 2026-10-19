@@ -12,7 +12,7 @@ public record FileName(String value) {
                 || value.contains("\r")
                 // ограничения по длине для обычных символов (обычный подсчет указателей) по 1-2 байта и эмодзи/иероглифов по 4 байта
                 || value.length() > 255) {
-            throw new RuntimeException("Invalid file name");
+            throw new RuntimeException("<FileName>: Invalid file name");
             // throw new InvalidFileException("Invalid file name");
         }
     }
