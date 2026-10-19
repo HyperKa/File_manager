@@ -1,20 +1,20 @@
 package org.example.file_manager_cloudflare.api;
 
-import org.example.file_manager_cloudflare.file.application.DownloadFileUseCase;
-import org.example.file_manager_cloudflare.file.application.GetAllFilesUseCase;
-import org.example.file_manager_cloudflare.file.application.UploadFileCommand;
-import org.example.file_manager_cloudflare.file.application.UploadFileUseCase;
+import org.example.file_manager_cloudflare.file.application.*;
 import org.example.file_manager_cloudflare.file.domain.*;
 import org.example.file_manager_cloudflare.file.domain.port.FileStoragePort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMultipartHttpServletRequestDsl;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -49,6 +49,9 @@ class FileControllerTest {
 
     @MockitoBean
     private DownloadFileUseCase downloadFileUseCase;
+
+    @MockitoBean
+    private RenameFileUseCase renameFileUseCase;
 
     @MockitoBean
     private FileStoragePort fileStoragePort;
@@ -271,6 +274,62 @@ class FileControllerTest {
                 // Проверка, что кириллица закодирована в percent-encoding
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"%D0%BC%D0%BE%D0%B9%20%D0%B4%D0%BE%D0%BA%D1%83%D0%BC%D0%B5%D0%BD%D1%82.pdf\""));
+    }
+
+    // ПЕРЕИМЕНОВАНИЕ ФАЙЛА (FM-4)
+    // стандартный, валидный тест
+    @Test
+    void renameFile_WhenValidRequest_Returns200WithNewName() throws Exception {
+        UUID fileId = UUID.randomUUID();
+        String newName = "new_name.pdf";
+        byte[] textBytes = "text from file".getBytes();
+
+        FileMetadata updatedMetadata = FileMetadata.pending(
+                testUserId,
+                new FileName(newName),
+                new StorageKey("files/" + fileId),
+                new FileMediaType("application/pdf"),
+                textBytes.length
+        );
+
+        when(renameFileUseCase.execute(eq(new FileId(fileId)), eq(newName)))
+                .thenReturn(updatedMetadata);
+
+        String jsonBody = "{\"newName\": \"" + newName + "\"}";
+
+        mockMvc.perform(patch("/api/v1/files/{id}", fileId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fileName").value(newName))
+                .andExpect(result -> verify(renameFileUseCase, times(1)).execute(any(FileId.class), eq(newName)));
+    }
+
+    // Тест на валидацию (пустое имя)
+    @Test
+    void renameFile_WhenNameIsBlank_Returns400() throws Exception {
+        UUID fileId = UUID.randomUUID();
+        String jsonBody = "{\"newName\": \"   \"}"; // Пустая строка
+
+        mockMvc.perform(patch("/api/v1/files/{id}", fileId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isBadRequest()); // Spring сам вернет 400 из-за @Valid
+    }
+
+    // Тест на то, что файл не найден
+    @Test
+    void renameFile_WhenFileNotFound_Returns404() throws Exception {
+        UUID fileId = UUID.randomUUID();
+        String jsonBody = "{\"newName\": \"new.pdf\"}";
+
+        when(renameFileUseCase.execute(eq(new FileId(fileId)), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(patch("/api/v1/files/{id}", fileId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonBody))
+                .andExpect(status().isNotFound());
     }
 
 }

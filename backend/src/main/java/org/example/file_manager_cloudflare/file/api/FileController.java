@@ -134,17 +134,17 @@ public class FileController {
      * Метод помечен как PatchMapping, так как запись FileMetadata необходимо изменять частично
      * Если делать @PutMapping, то необходимо поднимать всю запись и делать новую запись
      * FileMetadata с новым именем
-     * @param fileId
-     * @param request - входящий HTTP запрос на смену имени формата:
+     * @param id        - id файла
+     * @param request   - входящий HTTP запрос на смену имени формата: {"newName": "Новое имя файла"}
      * @return
      */
     @PatchMapping("/{id}")
     public ResponseEntity<FileResponse> renameFile(
-            @PathVariable UUID fileId,
+            @PathVariable("id") UUID id,
             @Valid @RequestBody RenameFileRequest request) {
 
-        FileId id = new FileId(fileId);
-        FileMetadata updatedMetadata = renameFileUseCase.execute(id, request.newName());
+        FileId fileId = new FileId(id);
+        FileMetadata updatedMetadata = renameFileUseCase.execute(fileId, request.newName());
 
         return ResponseEntity.ok(FileResponse.from(updatedMetadata));
     }
