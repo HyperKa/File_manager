@@ -53,4 +53,9 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
         );
     }
 
+    @Override
+    public void deleteFile(FileId id) {
+        fileRecordJpaRepository.deleteById(id.value());
+    }
+
 }

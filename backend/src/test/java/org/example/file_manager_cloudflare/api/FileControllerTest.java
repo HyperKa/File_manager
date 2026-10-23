@@ -54,6 +54,9 @@ class FileControllerTest {
     private RenameFileUseCase renameFileUseCase;
 
     @MockitoBean
+    private DeleteFileUseCase deleteFileUseCase;
+
+    @MockitoBean
     private FileStoragePort fileStoragePort;
 
     private final UserId testUserId = UserId.createFromUUID(UUID.fromString("00000000-0000-0000-0000-000000000001"));
@@ -329,6 +332,36 @@ class FileControllerTest {
         mockMvc.perform(patch("/api/v1/files/{id}", fileId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonBody))
+                .andExpect(status().isNotFound());
+    }
+
+
+    // УДАЛЕНИЕ (FM-5)
+
+
+    @Test
+    void deleteFile_WhenFileExists_Returns204() throws Exception {
+        UUID fileId = UUID.randomUUID();
+
+
+        // void метод:
+        doNothing().when(deleteFileUseCase).execute(any(FileId.class));
+        // when(deleteFileUseCase.execute(any(FileId.class))).thenReturn(null);
+
+        mockMvc.perform(delete("/api/v1/files/{id}", fileId))
+                .andExpect(status().isNoContent()); // 204
+
+        verify(deleteFileUseCase, times(1)).execute(any(FileId.class));
+    }
+
+    @Test
+    void deleteFile_WhenFileNotFound_Returns404() throws Exception {
+        // Arrange
+        UUID fileId = UUID.randomUUID();
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND))
+                .when(deleteFileUseCase).execute(any(FileId.class));
+
+        mockMvc.perform(delete("/api/v1/files/{id}", fileId))
                 .andExpect(status().isNotFound());
     }
 
