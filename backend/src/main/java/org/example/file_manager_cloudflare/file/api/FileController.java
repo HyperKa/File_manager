@@ -34,17 +34,19 @@ public class FileController {
     private final DownloadFileUseCase downloadFileUseCase;
     private final RenameFileUseCase renameFileUseCase;
     private final FileStoragePort fileStoragePort;
+    private final DeleteFileUseCase deleteFileUseCase;
 
     public FileController(UploadFileUseCase uploadFileUseCase,
                           GetAllFilesUseCase getAllFilesUseCase,
                           DownloadFileUseCase downloadFileUseCase,
                           FileStoragePort fileStoragePort,
-                          RenameFileUseCase renameFileUseCase) {
+                          RenameFileUseCase renameFileUseCase, DeleteFileUseCase deleteFileUseCase) {
         this.uploadFileUseCase = uploadFileUseCase;
         this.getAllFilesUseCase = getAllFilesUseCase;
         this.downloadFileUseCase = downloadFileUseCase;
         this.fileStoragePort = fileStoragePort;
         this.renameFileUseCase = renameFileUseCase;
+        this.deleteFileUseCase = deleteFileUseCase;
     }
 
     /**
@@ -76,7 +78,7 @@ public class FileController {
     }
 
     @GetMapping
-    public ResponseEntity<FilePageResponse> getFile(
+    public ResponseEntity<FilePageResponse> getAllFiles(
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size) {
         FilePage<FileMetadata> domainPage = getAllFilesUseCase.getAllFilesForOnePage(testId, page, size);
@@ -117,6 +119,7 @@ public class FileController {
                 ));
 
         InputStream inputStream = fileStoragePort.getFileContent(metadata.storageKey());
+        // InputStreamResourse позволяет читать и сразу передавать файл по сети аналогично Buffered, но без загрузки в JVM
         InputStreamResource resource = new InputStreamResource(inputStream);
 
         // Кодировка имени файла для парсинга названия файла на вебе
@@ -148,4 +151,15 @@ public class FileController {
 
         return ResponseEntity.ok(FileResponse.from(updatedMetadata));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteFile(
+            @PathVariable("id") UUID id) {
+        FileId fileId = new FileId(id);
+        deleteFileUseCase.execute(fileId);
+
+        // Должен вернуться статус "204 No content"
+        return ResponseEntity.noContent().build();
+    }
+
 }

@@ -1,5 +1,6 @@
 package org.example.file_manager_cloudflare.file.domain.port;
 
+import org.example.file_manager_cloudflare.file.domain.FileId;
 import org.example.file_manager_cloudflare.file.domain.StorageKey;
 import org.example.file_manager_cloudflare.file.domain.StoreCommand;
 import org.example.file_manager_cloudflare.file.domain.StoredFile;
@@ -9,4 +10,5 @@ import java.io.InputStream;
 public interface FileStoragePort {
     StoredFile storeFile(InputStream content, StoreCommand command);
     InputStream getFileContent(StorageKey key);
+    void deleteFile(StorageKey key);
 }
