@@ -65,18 +65,21 @@ public class UploadFileUseCase {
     }
 
     private FileMediaType validateBrowserMediaType(UploadFileCommand command, String mediaType) {
-        if (mediaType == null || mediaType.isEmpty() || mediaType.equals("application/octet-stream")) {
-            String filename = command.fileName().toLowerCase();
-            if (filename.endsWith(".docx")) {
-                return new FileMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-            } else if (filename.endsWith(".doc")) {
-                return new FileMediaType("application/msword");
-            } else if (filename.endsWith(".txt")) {
-                return new FileMediaType("text/plain");
-            } else if (filename.endsWith(".pdf")) {
-                return new FileMediaType("application/pdf");
-            }
+        if (mediaType != null && !mediaType.isEmpty() && !mediaType.equals("application/octet-stream")) {
+            return new FileMediaType(mediaType);
         }
-        return new FileMediaType("application/octet-stream");
+
+        String filename = command.fileName().toLowerCase();
+        if (filename.endsWith(".docx")) {
+            return new FileMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        } else if (filename.endsWith(".doc")) {
+            return new FileMediaType("application/msword");
+        } else if (filename.endsWith(".txt")) {
+            return new FileMediaType("text/plain");
+        } else if (filename.endsWith(".pdf")) {
+            return new FileMediaType("application/pdf");
+        }
+
+        throw new IllegalArgumentException("<UploadFileUseCase>: Неподдерживаемый тип файла от браузера: " + filename);
     }
 }
