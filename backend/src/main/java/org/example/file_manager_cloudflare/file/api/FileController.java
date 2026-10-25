@@ -128,7 +128,7 @@ public class FileController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(metadata.mediaType().value()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "<FileController>: header filename=\"" + encodedFileName + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFileName)
                 .contentLength(metadata.sizeBytes())
                 .body(resource);
     }
