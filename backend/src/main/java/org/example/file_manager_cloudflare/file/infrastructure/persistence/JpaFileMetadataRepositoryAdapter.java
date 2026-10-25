@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -30,6 +31,7 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
 
     @Override
     public void saveFile(FileMetadata metadata) {
+        // Новый fileRecordEntity сохраняется в бд, меняется поле версии при изменении
         FileRecordEntity entity = FileRecordEntity.fromDomain(metadata);
         fileRecordJpaRepository.save(entity);
     }
@@ -56,6 +58,15 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
     @Override
     public void deleteFile(FileId id) {
         fileRecordJpaRepository.deleteById(id.value());
+    }
+
+    @Override
+    @Transactional
+    public void updateFileName(FileId fileId, FileName newName) {
+        FileRecordEntity entity = fileRecordJpaRepository.findById(fileId.value())
+                .orElseThrow(() -> new RuntimeException("File not found"));
+        entity.setFileName(newName.value());
+        fileRecordJpaRepository.save(entity);
     }
 
 }

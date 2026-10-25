@@ -86,4 +86,12 @@ public class FileRecordEntity {
                 version
         );
     }
+
+    public void setFileName(String fileName) {
+        this.originalName = fileName;
+    }
+
+    public String getFileName() {
+        return this.originalName;
+    }
 }
