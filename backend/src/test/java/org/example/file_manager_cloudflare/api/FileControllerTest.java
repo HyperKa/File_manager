@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -213,14 +214,14 @@ class FileControllerTest {
 
     @Test
     void downloadFile_WhenFileExists_Returns200WithCorrectHeaders() throws Exception {
-
         UUID fileId = UUID.randomUUID();
+        String originalFileName = "document.pdf";
         byte[] fileContent = "Hello, World!".getBytes(StandardCharsets.UTF_8);
         InputStream inputStream = new ByteArrayInputStream(fileContent);
 
         FileMetadata metadata = FileMetadata.pending(
                 testUserId,
-                new FileName("document.pdf"),
+                new FileName(originalFileName),
                 new StorageKey("files/" + fileId),
                 new FileMediaType("application/pdf"),
                 (long) fileContent.length
@@ -232,11 +233,16 @@ class FileControllerTest {
         when(fileStoragePort.getFileContent(eq(metadata.storageKey())))
                 .thenReturn(inputStream);
 
+        // Генерация ожидаемого заголовка по методу контроллера
+        String encodedFileName = URLEncoder.encode(originalFileName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        String expectedHeader = "attachment; filename*=UTF-8''" + encodedFileName;
+
         mockMvc.perform(get("/api/v1/files/{id}/content", fileId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/pdf"))
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"document.pdf\""))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, expectedHeader))
                 .andExpect(content().bytes(fileContent)); // Проверка, что байты совпадают
     }
 
@@ -253,14 +259,15 @@ class FileControllerTest {
 
     @Test
     void downloadFile_WhenFilenameHasCyrillic_EncodesCorrectly() throws Exception {
-        // Arrange — файл с кириллицей и пробелом в имени
+
         UUID fileId = UUID.randomUUID();
+        String originalFileName = "мой документ.pdf";
         byte[] fileContent = "test".getBytes(StandardCharsets.UTF_8);
         InputStream inputStream = new ByteArrayInputStream(fileContent);
 
         FileMetadata metadata = FileMetadata.pending(
                 testUserId,
-                new FileName("мой документ.pdf"), // Кириллица + пробел
+                new FileName(originalFileName),
                 new StorageKey("files/" + fileId),
                 new FileMediaType("application/pdf"),
                 (long) fileContent.length
@@ -272,11 +279,17 @@ class FileControllerTest {
         when(fileStoragePort.getFileContent(eq(metadata.storageKey())))
                 .thenReturn(inputStream);
 
+        // Генерируется ожидаемый заголовок так же, как это делает контроллер
+        String encodedFileName = URLEncoder.encode(originalFileName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        String expectedHeader = "attachment; filename*=UTF-8''" + encodedFileName;
+
         mockMvc.perform(get("/api/v1/files/{id}/content", fileId))
                 .andExpect(status().isOk())
-                // Проверка, что кириллица закодирована в percent-encoding
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"%D0%BC%D0%BE%D0%B9%20%D0%B4%D0%BE%D0%BA%D1%83%D0%BC%D0%B5%D0%BD%D1%82.pdf\""));
+                // Сравниваем с динамически сгенерированной правильной строкой
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, expectedHeader))
+                .andExpect(content().bytes(fileContent)); // Бонус: проверка, что тело файла тоже пришло
     }
 
     // ПЕРЕИМЕНОВАНИЕ ФАЙЛА (FM-4)

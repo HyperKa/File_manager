@@ -56,7 +56,8 @@ class RenameFileUseCaseTest {
         FileMetadata result = renameFileUseCase.execute(fileId, "new_name.pdf");
 
         assertEquals("new_name.pdf", result.fileName().value());
-        verify(metadataRepository, times(1)).saveFile(eq(metadata));
+        // теперь saveFile со сменой version нет, следовательно этот тест откорректирован:
+        verify(metadataRepository, times(0)).saveFile(eq(metadata));
     }
 
     @Test
