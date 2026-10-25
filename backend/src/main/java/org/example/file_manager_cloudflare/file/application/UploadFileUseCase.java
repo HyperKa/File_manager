@@ -3,8 +3,11 @@ package org.example.file_manager_cloudflare.file.application;
 import org.example.file_manager_cloudflare.file.domain.*;
 import org.example.file_manager_cloudflare.file.domain.port.FileMetadataRepository;
 import org.example.file_manager_cloudflare.file.domain.port.FileStoragePort;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import javax.print.attribute.standard.Media;
 
 @Service
 public class UploadFileUseCase {
@@ -22,7 +25,9 @@ public class UploadFileUseCase {
 
         FileId fileId = FileId.generateNewRandomUUID();
         FileName fileName = new FileName(command.fileName());
-        FileMediaType mediaType = new FileMediaType(command.mediaType());
+        FileMediaType mediaType = validateBrowserMediaType(
+                command,
+                command.mediaType());
         StorageKey storageKey = new StorageKey("files/" + fileId.value());
 
         FileMetadata pending = FileMetadata.pending(
@@ -57,5 +62,21 @@ public class UploadFileUseCase {
             throw new RuntimeException("Ошибка при загрузке файла в S3", e);
         }
 
+    }
+
+    private FileMediaType validateBrowserMediaType(UploadFileCommand command, String mediaType) {
+        if (mediaType == null || mediaType.isEmpty() || mediaType.equals("application/octet-stream")) {
+            String filename = command.fileName().toLowerCase();
+            if (filename.endsWith(".docx")) {
+                return new FileMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+            } else if (filename.endsWith(".doc")) {
+                return new FileMediaType("application/msword");
+            } else if (filename.endsWith(".txt")) {
+                return new FileMediaType("text/plain");
+            } else if (filename.endsWith(".pdf")) {
+                return new FileMediaType("application/pdf");
+            }
+        }
+        return new FileMediaType("application/octet-stream");
     }
 }

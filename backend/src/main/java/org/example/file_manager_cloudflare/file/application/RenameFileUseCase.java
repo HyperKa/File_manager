@@ -28,8 +28,8 @@ public class RenameFileUseCase {
 
         FileName newFileName = new FileName(newName);
 
-        metadata.rename(newFileName);
-        metadataRepository.saveFile(metadata);
+        metadataRepository.updateFileName(fileId, newFileName);
+        metadata.rename(new FileName(newName));
         return metadata;
     }
 
