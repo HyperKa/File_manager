@@ -50,7 +50,7 @@ public class FileController {
     }
 
     /**
-     *
+     * Метод загрузки файла в хранилище
      * @param file
      *        метод file.getInputStream() из сервера Tomcat уже буферизует файл внутри, и принимает FileInputStream:
      *        new BufferedInputStream(new FileInputStream(file))
@@ -128,7 +128,7 @@ public class FileController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(metadata.mediaType().value()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + encodedFileName + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "<FileController>: header filename=\"" + encodedFileName + "\"")
                 .contentLength(metadata.sizeBytes())
                 .body(resource);
     }
