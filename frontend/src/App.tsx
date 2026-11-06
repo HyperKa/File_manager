@@ -31,6 +31,7 @@ function App() {
 
     // 3. ЭФФЕКТ: Выполняется один раз при запуске приложения
     useEffect(() => {
+        console.log("render component")
         loadFiles();
     }, []);
 
