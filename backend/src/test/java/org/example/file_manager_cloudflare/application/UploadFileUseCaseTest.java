@@ -18,9 +18,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -116,4 +114,97 @@ public class UploadFileUseCaseTest {
         verify(metadataRepo, times(1)).saveFile(argThat(metadata ->
                 metadata.status() == FileStatus.FAILED));
     }
+
+    @Test
+    @DisplayName("BE-1: Файл создаётся с первой попытки (без коллизий)")
+    void shouldUploadFileOnFirstAttempt() {
+        when(metadataRepo.existsById(any(FileId.class)))
+                .thenReturn(false);
+        when(metadataRepo.createFile(any(FileMetadata.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        StorageKey storageKey = new StorageKey("files/test-key");
+        StoredFile storedFile = new StoredFile(storageKey, "sha256hash", fileContent.getBytes().length);
+        when(storagePort.storeFile(any(InputStream.class), any(StoreCommand.class))).thenReturn(storedFile);
+        doNothing().when(metadataRepo).saveFile(any(FileMetadata.class));
+
+        UploadFileCommand command = new UploadFileCommand(
+                new ByteArrayInputStream(fileContent.getBytes()),
+                "document.txt",
+                "text/plain",
+                fileContent.getBytes().length
+        );
+
+        FileMetadata result = uploadFileUseCase.uploadFile(command, testId);
+
+        assertNotNull(result);
+        // Доказательство итерации: метод вызван ровно 1 раз
+        verify(metadataRepo, times(1)).existsById(any(FileId.class));
+        verify(metadataRepo, times(1)).createFile(any(FileMetadata.class));
+        verify(storagePort, times(1)).storeFile(any(InputStream.class), any(StoreCommand.class));
+    }
+
+    @Test
+    @DisplayName("BE-1: Retry при коллизии FileId (успех со 2-й попытки)")
+    void shouldRetryGetFileId() {
+        // Настройка: 1-я попытка коллизия (true), 2-я попытка успех (false)
+        when(metadataRepo.existsById(any(FileId.class)))
+                .thenReturn(true)
+                .thenReturn(false);
+
+        when(metadataRepo.createFile(any(FileMetadata.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        StorageKey storageKey = new StorageKey("files/address456");
+        StoredFile storedFile = new StoredFile(storageKey, "sha256hash2", fileContent.getBytes().length);
+        when(storagePort.storeFile(any(InputStream.class), any(StoreCommand.class)))
+                .thenReturn(storedFile);
+        doNothing().when(metadataRepo).saveFile(any(FileMetadata.class));
+
+        UploadFileCommand command = new UploadFileCommand(
+                new ByteArrayInputStream(fileContent.getBytes()),
+                "document.txt",
+                "text/plain",
+                fileContent.getBytes().length
+        );
+
+        FileMetadata result = uploadFileUseCase.uploadFile(command, testId);
+
+        assertNotNull(result);
+        // Проверка, что репозиторий был опрошен РОВНО 2 раза
+        verify(metadataRepo, times(2)).existsById(any(FileId.class));
+        // При этом файл был создан только 1 раз (после успешной второй попытки)
+        verify(metadataRepo, times(1)).createFile(any(FileMetadata.class));
+        verify(storagePort, times(1)).storeFile(any(InputStream.class), any(StoreCommand.class));
+    }
+
+    @Test
+    @DisplayName("BE-1: Выброс исключения после 3 неудачных попыток")
+    void shouldThrowExceptionAfterThreeFailedAttempts() {
+        // Given: Постоянная коллизия (3 раза)
+        when(metadataRepo.existsById(any(FileId.class)))
+                .thenReturn(true)
+                .thenReturn(true)
+                .thenReturn(true);
+
+        UploadFileCommand command = new UploadFileCommand(
+                new ByteArrayInputStream(fileContent.getBytes()),
+                "document.txt",
+                "text/plain",
+                fileContent.getBytes().length
+        );
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            uploadFileUseCase.uploadFile(command, testId);
+        });
+
+        assertTrue(exception.getMessage().contains("uniqueFileId is empty") ||
+                exception.getMessage().contains("Failed to generate a unique FileId"));
+
+        verify(metadataRepo, times(3)).existsById(any(FileId.class)); // Ровно 3 проверки
+        verify(metadataRepo, never()).createFile(any(FileMetadata.class)); // Ни одного создания!
+        verify(storagePort, never()).storeFile(any(InputStream.class), any(StoreCommand.class)); // S3 не вызывался
+    }
+
 }

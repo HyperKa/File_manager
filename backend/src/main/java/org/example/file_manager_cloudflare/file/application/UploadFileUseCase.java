@@ -3,16 +3,10 @@ package org.example.file_manager_cloudflare.file.application;
 import org.example.file_manager_cloudflare.file.domain.*;
 import org.example.file_manager_cloudflare.file.domain.port.FileMetadataRepository;
 import org.example.file_manager_cloudflare.file.domain.port.FileStoragePort;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.multipart.MultipartFile;
-
-import javax.print.attribute.standard.Media;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static liquibase.analytics.Event.Fields.command;
 
 @Service
 public class UploadFileUseCase {
@@ -29,7 +23,7 @@ public class UploadFileUseCase {
         this.transactionTemplate = transactionTemplate;
     }
 
-    private FileMetadata executeMacketFileAndSave(FileMetadata metadata, UploadFileCommand command) {
+    private FileMetadata executeUploadAndSave(FileMetadata metadata, UploadFileCommand command) {
 
         // заполнение хэша для файла
         try {
@@ -98,7 +92,7 @@ public class UploadFileUseCase {
         FileMetadata created = transactionTemplate.execute(status ->
                 metadataRepo.createFile(pending));
 
-        return executeMacketFileAndSave(created, command);
+        return executeUploadAndSave(created, command);
     }
 
     private FileMediaType validateBrowserMediaType(UploadFileCommand command) {
