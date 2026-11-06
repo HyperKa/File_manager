@@ -6,8 +6,13 @@ import org.example.file_manager_cloudflare.file.domain.port.FileStoragePort;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.print.attribute.standard.Media;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static liquibase.analytics.Event.Fields.command;
 
 @Service
 public class UploadFileUseCase {
@@ -15,56 +20,89 @@ public class UploadFileUseCase {
     FileStoragePort storagePort;
     TransactionTemplate transactionTemplate;
 
+    private static final Logger log = LoggerFactory.getLogger(UploadFileUseCase.class);
+    private static final int MAX_RETRIES = 3;
+
     public UploadFileUseCase(FileMetadataRepository metadataRepo, FileStoragePort storagePort, TransactionTemplate transactionTemplate) {
         this.metadataRepo = metadataRepo;
         this.storagePort = storagePort;
         this.transactionTemplate = transactionTemplate;
     }
 
-    public FileMetadata uploadFile(UploadFileCommand command, UserId ownerId) {
-
-        FileId fileId = FileId.generateNewRandomUUID();
-        FileName fileName = new FileName(command.fileName());
-        FileMediaType mediaType = validateBrowserMediaType(
-                command,
-                command.mediaType());
-        StorageKey storageKey = new StorageKey("files/" + fileId.value());
-
-        FileMetadata pending = FileMetadata.pending(
-                ownerId, fileName, storageKey, mediaType, command.sizeBytes()
-        );
-
-        // сохранение макета файла на основе загруженных данных
-        FileMetadata created = transactionTemplate.execute(status ->
-                metadataRepo.createFile(pending)
-        );
+    private FileMetadata executeMacketFileAndSave(FileMetadata metadata, UploadFileCommand command) {
 
         // заполнение хэша для файла
         try {
-            StoreCommand storeCommand = new StoreCommand(storageKey, mediaType, command.sizeBytes());
+            StoreCommand storeCommand = new StoreCommand(
+                    metadata.storageKey(),
+                    metadata.mediaType(),
+                    metadata.sizeBytes()
+            );
             // сохранение файла в S3 и возврат хэша
             StoredFile storedFile = storagePort.storeFile(command.content(), storeCommand);
 
-            created.markReady(storedFile.eTag(), null);
+            metadata.markReady(storedFile.eTag(), null);
 
             return transactionTemplate.execute(status -> {
-                metadataRepo.saveFile(created);
-                return created;
+                metadataRepo.saveFile(metadata);
+                return metadata;
             });
 
 
         } catch (Exception e) {
             //
             transactionTemplate.executeWithoutResult( status -> {
-                created.markFailed();
-                metadataRepo.saveFile(created);
+                metadata.markFailed();
+                metadataRepo.saveFile(metadata);
             });
             throw new RuntimeException("Ошибка при загрузке файла в S3", e);
         }
 
     }
 
-    private FileMediaType validateBrowserMediaType(UploadFileCommand command, String mediaType) {
+    public FileMetadata uploadFile(UploadFileCommand command, UserId ownerId) {
+        if (command.sizeBytes() == 0) {
+            throw new IllegalArgumentException("<UploadFileUseCase>: File is empty");
+        }
+
+        FileId uniqueFileId = null;
+
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            FileId candidateFileId = FileId.generateNewRandomUUID();
+
+            if (metadataRepo.existsById(candidateFileId)) {
+                log.warn("<UploadFileUseCase>: collision detected by id: {}.", candidateFileId.value());
+                continue;
+            }
+            uniqueFileId = candidateFileId;
+            log.info("<UploadFileUseCase>: Successfully generated unique FileId: {}", uniqueFileId.value());
+            break;
+        }
+
+        if (uniqueFileId == null) {
+            throw new IllegalArgumentException("<UploadFileUseCase>: uniqueFileId is empty");
+        }
+
+        StorageKey storageKey = new StorageKey("files/" + uniqueFileId.value());
+        FileName fileName = new FileName(command.fileName());
+        FileMediaType mediaType = validateBrowserMediaType(command);
+
+        FileMetadata pending = FileMetadata.pending(
+                ownerId,
+                fileName,
+                storageKey,
+                mediaType,
+                command.sizeBytes()
+        );
+
+        FileMetadata created = transactionTemplate.execute(status ->
+                metadataRepo.createFile(pending));
+
+        return executeMacketFileAndSave(created, command);
+    }
+
+    private FileMediaType validateBrowserMediaType(UploadFileCommand command) {
+        String mediaType = command.mediaType();
         if (mediaType != null && !mediaType.isEmpty() && !mediaType.equals("application/octet-stream")) {
             return new FileMediaType(mediaType);
         }

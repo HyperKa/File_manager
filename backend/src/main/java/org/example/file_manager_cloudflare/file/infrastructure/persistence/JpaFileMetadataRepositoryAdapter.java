@@ -12,28 +12,33 @@ import java.util.Optional;
 
 @Repository
 public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository {
-    private final FileRecordJpaRepository fileRecordJpaRepository;
+    private final FileRecordJpaRepository jpaRepository;
 
-    public JpaFileMetadataRepositoryAdapter(FileRecordJpaRepository fileRecordJpaRepository) {
-        this.fileRecordJpaRepository = fileRecordJpaRepository;
+    public JpaFileMetadataRepositoryAdapter(FileRecordJpaRepository jpaRepository) {
+        this.jpaRepository = jpaRepository;
     }
 
     @Override
     public FileMetadata createFile(FileMetadata metadata) {
         FileRecordEntity entity = FileRecordEntity.fromDomain(metadata);
-        return fileRecordJpaRepository.save(entity).toDomain();
+        return jpaRepository.save(entity).toDomain();
     }
 
     @Override
     public Optional<FileMetadata> findFileById(FileId id) {
-        return fileRecordJpaRepository.findById(id.value()).map(FileRecordEntity::toDomain);
+        return jpaRepository.findById(id.value()).map(FileRecordEntity::toDomain);
+    }
+
+    @Override
+    public boolean existsById(FileId id) {
+        return jpaRepository.existsById(id.value());
     }
 
     @Override
     public void saveFile(FileMetadata metadata) {
         // Новый fileRecordEntity сохраняется в бд, меняется поле версии при изменении
         FileRecordEntity entity = FileRecordEntity.fromDomain(metadata);
-        fileRecordJpaRepository.save(entity);
+        jpaRepository.save(entity);
     }
 
     @Override
@@ -44,7 +49,7 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
                 pageSize,
                 Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<FileRecordEntity> page = fileRecordJpaRepository.findByOwnerIdAndDeletedAtIsNull(userId.value(), pageRequest);
+        Page<FileRecordEntity> page = jpaRepository.findByOwnerIdAndDeletedAtIsNull(userId.value(), pageRequest);
 
         return new FilePage<>(
                 page.getContent().stream().map(FileRecordEntity::toDomain).toList(),
@@ -57,16 +62,17 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
 
     @Override
     public void deleteFile(FileId id) {
-        fileRecordJpaRepository.deleteById(id.value());
+        jpaRepository.deleteById(id.value());
     }
 
     @Override
     @Transactional
     public void updateFileName(FileId fileId, FileName newName) {
-        FileRecordEntity entity = fileRecordJpaRepository.findById(fileId.value())
+        FileRecordEntity entity = jpaRepository.findById(fileId.value())
                 .orElseThrow(() -> new RuntimeException("File not found"));
         entity.setFileName(newName.value());
-        fileRecordJpaRepository.save(entity);
+        jpaRepository.save(entity);
     }
+
 
 }
