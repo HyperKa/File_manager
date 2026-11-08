@@ -14,4 +14,7 @@ public interface FileMetadataRepository {
 
     // для повторной загрузки в UploadFileUseCase, если fileId занят:
     boolean existsById(FileId id);
+
+    // поиск по sha256 для оптимизации загрузки
+    Optional<FileMetadata> findBySha256(String sha256);
 }

@@ -105,4 +105,6 @@ public class FileMetadata {
     public long sizeBytes() { return sizeBytes; }
     public FileStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
+    public String sha256() { return sha256; }
+    public String eTag() {return eTag; }
 }

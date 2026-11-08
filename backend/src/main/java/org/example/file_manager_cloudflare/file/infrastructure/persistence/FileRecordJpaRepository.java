@@ -4,8 +4,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import org.springframework.data.domain.Pageable;
+
+import java.util.Optional;
 import java.util.UUID;
 
 public interface FileRecordJpaRepository extends JpaRepository<FileRecordEntity, UUID> {
     Page<FileRecordEntity> findByOwnerIdAndDeletedAtIsNull(UUID userId, Pageable pageable);
+    Optional<FileRecordEntity> findBySha256(String sha256);
 }

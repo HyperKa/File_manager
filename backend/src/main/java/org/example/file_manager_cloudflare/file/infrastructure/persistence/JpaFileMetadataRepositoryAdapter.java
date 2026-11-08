@@ -30,6 +30,11 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
     }
 
     @Override
+    public Optional<FileMetadata> findBySha256(String sha256) {
+        return jpaRepository.findBySha256(sha256).map(FileRecordEntity::toDomain);
+    }
+
+    @Override
     public boolean existsById(FileId id) {
         return jpaRepository.existsById(id.value());
     }
