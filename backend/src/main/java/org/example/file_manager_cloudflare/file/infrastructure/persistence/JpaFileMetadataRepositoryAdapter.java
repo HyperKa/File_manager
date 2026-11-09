@@ -2,16 +2,22 @@ package org.example.file_manager_cloudflare.file.infrastructure.persistence;
 
 import org.example.file_manager_cloudflare.file.domain.*;
 import org.example.file_manager_cloudflare.file.domain.port.FileMetadataRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository {
+    private static final Logger log = LoggerFactory.getLogger(JpaFileMetadataRepositoryAdapter.class);
+
     private final FileRecordJpaRepository jpaRepository;
 
     public JpaFileMetadataRepositoryAdapter(FileRecordJpaRepository jpaRepository) {
@@ -24,9 +30,14 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
         return jpaRepository.save(entity).toDomain();
     }
 
+    /**
+     * ⭐ ГЛАВНАЯ ФИЧА SOFT DELETE: findById НЕ ВИДИТ УДАЛЁННЫЕ ФАЙЛЫ
+     * UseCase думает, что файл реально удалён, хотя в БД он есть с deletedAt != null
+     */
     @Override
     public Optional<FileMetadata> findFileById(FileId id) {
-        return jpaRepository.findById(id.value()).map(FileRecordEntity::toDomain);
+        return jpaRepository.findByFileIdAndDeletedAtIsNull(id.value())
+                .map(FileRecordEntity::toDomain);
     }
 
     @Override
@@ -41,19 +52,18 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
 
     @Override
     public void saveFile(FileMetadata metadata) {
-        // Новый fileRecordEntity сохраняется в бд, меняется поле версии при изменении
         FileRecordEntity entity = FileRecordEntity.fromDomain(metadata);
         jpaRepository.save(entity);
     }
 
     @Override
     public FilePage<FileMetadata> findAllFilesByOwnerId(UserId userId, int pageNumber, int pageSize) {
-
         PageRequest pageRequest = PageRequest.of(
                 pageNumber,
                 pageSize,
                 Sort.by(Sort.Direction.DESC, "createdAt"));
 
+        // ⭐ Фильтрация удалённых файлов — на уровне JPA
         Page<FileRecordEntity> page = jpaRepository.findByOwnerIdAndDeletedAtIsNull(userId.value(), pageRequest);
 
         return new FilePage<>(
@@ -65,19 +75,20 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
         );
     }
 
+    /**
+     * ⭐ SOFT DELETE: помечаем файл, НЕ удаляя из БД и S3
+     */
     @Override
-    public void deleteFile(FileId id) {
-        jpaRepository.deleteById(id.value());
+    public void markAsDeleted(FileId id) {
+        int updatedRows = jpaRepository.markAsDeleted(
+                id.value(),
+                java.time.Instant.now(),
+                FileStatus.DELETED
+        );
+        log.info("<JpaAdapter>: markAsDeleted fileId={}, updatedRows={}", id.value(), updatedRows);
+        if (updatedRows == 0) {
+            log.warn("<JpaAdapter>: no rows updated for fileId={} (возможно, уже удалён)", id.value());
+        }
     }
-
-    @Override
-    @Transactional
-    public void updateFileName(FileId fileId, FileName newName) {
-        FileRecordEntity entity = jpaRepository.findById(fileId.value())
-                .orElseThrow(() -> new RuntimeException("File not found"));
-        entity.setFileName(newName.value());
-        jpaRepository.save(entity);
-    }
-
 
 }

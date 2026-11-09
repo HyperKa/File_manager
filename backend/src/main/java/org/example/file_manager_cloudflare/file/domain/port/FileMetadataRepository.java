@@ -9,12 +9,12 @@ public interface FileMetadataRepository {
     Optional<FileMetadata> findFileById(FileId id);
     void saveFile(FileMetadata metadata);
     FilePage<FileMetadata> findAllFilesByOwnerId(UserId userId, int pageNumber, int pageSize);
-    public void deleteFile(FileId id);
-    void updateFileName(FileId fileId, FileName newName);
 
     // для повторной загрузки в UploadFileUseCase, если fileId занят:
     boolean existsById(FileId id);
 
     // поиск по sha256 для оптимизации загрузки
     Optional<FileMetadata> findBySha256(String sha256);
+
+    void markAsDeleted(FileId id);
 }

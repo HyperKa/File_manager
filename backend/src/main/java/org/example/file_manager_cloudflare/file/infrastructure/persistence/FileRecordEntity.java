@@ -11,7 +11,7 @@ import java.util.UUID;
 public class FileRecordEntity {
 
     @Id
-    private UUID id;
+    private UUID fileId;
 
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
@@ -56,22 +56,28 @@ public class FileRecordEntity {
     // сохранение в базу
     public static FileRecordEntity fromDomain(FileMetadata metadata) {
         FileRecordEntity entity = new FileRecordEntity();
-        entity.id = metadata.id().value();
+        entity.fileId = metadata.id().value();
         entity.ownerId = metadata.ownerId().value();
         entity.originalName = metadata.fileName().value();
         entity.storageKey = metadata.storageKey().value();
         entity.mediaType = metadata.mediaType().value();
         entity.sizeBytes = metadata.sizeBytes();
+
+        entity.sha256 = metadata.sha256();
+        entity.eTag = metadata.eTag();
+
         entity.status = metadata.status();
         entity.createdAt = metadata.createdAt();
         entity.updatedAt = Instant.now();
+        entity.deletedAt = metadata.deletedAt();
+        entity.version = metadata.version();
         return entity;
     }
 
     // вывод из базы
     public FileMetadata toDomain() {
         return new FileMetadata(
-                FileId.createFromUUID(id),
+                FileId.createFromUUID(fileId),
                 UserId.createFromUUID(ownerId),
                 new FileName(originalName),
                 new StorageKey(storageKey),

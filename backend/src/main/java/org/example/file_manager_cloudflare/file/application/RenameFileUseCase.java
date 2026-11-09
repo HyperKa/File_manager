@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.FileNotFoundException;
+
 @Service
 public class RenameFileUseCase {
     private final FileMetadataRepository metadataRepository;
@@ -23,13 +25,21 @@ public class RenameFileUseCase {
 
     @Transactional
     public FileMetadata execute(FileId fileId, String newName) {
-        FileMetadata metadata = metadataRepository.findFileById(fileId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found"));
+        // 1. Получаем файл (если он удалён — not found автоматически)
+        FileMetadata metadata = null;
+        try {
+            metadata = metadataRepository.findFileById(fileId)
+                    .orElseThrow(() -> new FileNotFoundException("File not found: " + fileId.value()));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
 
         FileName newFileName = new FileName(newName);
 
-        metadataRepository.updateFileName(fileId, newFileName);
         metadata.rename(newFileName);
+
+        metadataRepository.saveFile(metadata);
+
         return metadata;
     }
 

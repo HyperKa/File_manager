@@ -91,6 +91,12 @@ public class FileMetadata {
         this.updatedAt = Instant.now();
     }
 
+    public void markDeleted() {
+        this.deletedAt = Instant.now();
+        this.status = FileStatus.DELETED;
+        this.updatedAt = Instant.now();
+    }
+
     public void rename(FileName newName) {
         this.originalName = Objects.requireNonNull(newName);
         this.updatedAt = Instant.now();
@@ -105,6 +111,8 @@ public class FileMetadata {
     public long sizeBytes() { return sizeBytes; }
     public FileStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
+    public Instant deletedAt() {return deletedAt; }
     public String sha256() { return sha256; }
     public String eTag() {return eTag; }
+    public long version() {return version; }
 }
