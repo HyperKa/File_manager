@@ -11,6 +11,7 @@ import java.util.UUID;
 public class FileRecordEntity {
 
     @Id
+    @Column(name = "file_id", nullable = false)
     private UUID fileId;
 
     @Column(name = "owner_id", nullable = false)
@@ -68,7 +69,7 @@ public class FileRecordEntity {
 
         entity.status = metadata.status();
         entity.createdAt = metadata.createdAt();
-        entity.updatedAt = Instant.now();
+        entity.updatedAt = metadata.updatedAt();
         entity.deletedAt = metadata.deletedAt();
         entity.version = metadata.version();
         return entity;

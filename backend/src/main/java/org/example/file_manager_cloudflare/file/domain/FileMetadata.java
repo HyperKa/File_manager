@@ -112,6 +112,7 @@ public class FileMetadata {
     public FileStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
     public Instant deletedAt() {return deletedAt; }
+    public Instant updatedAt() { return updatedAt; }
     public String sha256() { return sha256; }
     public String eTag() {return eTag; }
     public long version() {return version; }

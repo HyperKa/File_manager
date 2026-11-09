@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/000-baseline-schema.postgresql.sql
   - include:
       file: db/changelog/changes/001-sprint3-schema.postgresql.sql
+  - include:
+      file: db/changelog/changes/002-sprint3-rename-id.sql
