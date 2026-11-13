@@ -83,8 +83,10 @@ public class FileController {
             @RequestParam(value = "size", defaultValue = "50") int size) {
         FilePage<FileMetadata> domainPage = getAllFilesUseCase.getAllFilesForOnePage(testId, page, size);
 
-        List<FileResponse> content = domainPage.content().stream()
-                .map(FileResponse::from).toList();
+        List<FileResponse> content = domainPage.content()
+                .stream()
+                .map(FileResponse::from)
+                .toList();
 
         FilePageResponse response = new FilePageResponse(
                 content,

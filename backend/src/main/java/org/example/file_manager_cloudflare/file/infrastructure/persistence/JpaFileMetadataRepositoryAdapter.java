@@ -31,7 +31,7 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
     }
 
     /**
-     * ⭐ ГЛАВНАЯ ФИЧА SOFT DELETE: findById НЕ ВИДИТ УДАЛЁННЫЕ ФАЙЛЫ
+     * ГЛАВНАЯ ФИЧА SOFT DELETE: findById НЕ ВИДИТ УДАЛЁННЫЕ ФАЙЛЫ
      * UseCase думает, что файл реально удалён, хотя в БД он есть с deletedAt != null
      */
     @Override
@@ -63,7 +63,7 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
                 pageSize,
                 Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // ⭐ Фильтрация удалённых файлов — на уровне JPA
+        // Фильтрация удалённых файлов — на уровне JPA
         Page<FileRecordEntity> page = jpaRepository.findByOwnerIdAndDeletedAtIsNull(userId.value(), pageRequest);
 
         return new FilePage<>(
@@ -76,7 +76,7 @@ public class JpaFileMetadataRepositoryAdapter implements FileMetadataRepository 
     }
 
     /**
-     * ⭐ SOFT DELETE: помечаем файл, НЕ удаляя из БД и S3
+     * SOFT DELETE: помечаем файл, НЕ удаляя из БД и S3
      */
     @Override
     public void markAsDeleted(FileId id) {

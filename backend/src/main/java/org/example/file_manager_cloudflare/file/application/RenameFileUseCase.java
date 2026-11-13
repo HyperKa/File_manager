@@ -10,8 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.io.FileNotFoundException;
+import org.example.file_manager_cloudflare.common.exception.FileNotFoundException;
 
 @Service
 public class RenameFileUseCase {
@@ -25,14 +24,9 @@ public class RenameFileUseCase {
 
     @Transactional
     public FileMetadata execute(FileId fileId, String newName) {
-        // 1. Получаем файл (если он удалён — not found автоматически)
-        FileMetadata metadata = null;
-        try {
-            metadata = metadataRepository.findFileById(fileId)
-                    .orElseThrow(() -> new FileNotFoundException("File not found: " + fileId.value()));
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+
+        FileMetadata metadata = metadataRepository.findFileById(fileId)
+                .orElseThrow(() -> new FileNotFoundException("File with id '" + fileId.value() + "' not found"));
 
         FileName newFileName = new FileName(newName);
 
