@@ -1,122 +1,60 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react';
+import toast, { Toaster } from 'react-hot-toast'; // Всплывающие уведомления
+
+// Импортируем наши созданные компоненты и API
+import { Header } from './components/Header';
+import { FileList } from './components/FileList';
+import { UploadButton } from './components/UploadButton';
+import { filesApi } from './api/filesApi';
+import type { FileResponse } from './types/file';
+
+import './index.css'; // Наши стили Opera GX
 
 function App() {
-  const [count, setCount] = useState(0)
+    // 1. СОСТОЯНИЕ (State): Здесь хранятся наши данные, как private List<File> в Java
+    const [files, setFiles] = useState<FileResponse[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    // 2. МЕТОД ЗАГРУЗКИ: Аналог @PostConstruct или init()
+    const loadFiles = async () => {
+        try {
+            setIsLoading(true);
+            const data = await filesApi.getAllFiles(); // Запрос к бэкенду
+            setFiles(data); // Обновляем состояние. Это триггерит перерисовку!
+        } catch (error) {
+            console.error('Ошибка загрузки:', error);
+            toast.error('Не удалось подключиться к серверу');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-      <div className="ticks"></div>
+    // 3. ЭФФЕКТ: Выполняется один раз при запуске приложения
+    useEffect(() => {
+        console.log("render component")
+        loadFiles();
+    }, []);
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+    // 4. ОТРИСОВКА (View): Собираем всё воедино
+    return (
+        <div className="container">
+            <Toaster position="top-right" />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+            <Header />
+
+            <main>
+                {/* Кнопка загрузки. При успехе она вызовет loadFiles */}
+                <UploadButton onUploadSuccess={loadFiles} />
+
+                {isLoading ? (
+                    <div className="loading-state">Загрузка данных...</div>
+                ) : (
+                    /* Таблица. Мы передаем ей массив files И функцию loadFiles под именем onRefresh */
+                    <FileList files={files} onRefresh={loadFiles} />
+                )}
+            </main>
+        </div>
+    );
 }
 
-export default App
+export default App;
